@@ -2036,7 +2036,14 @@ app.registerExtension({
                     if (message.gifs.length > 1) {
                         let html = "<div style='display:flex;flex-wrap:wrap;gap:5px;'>";
                         message.gifs.forEach((gif, index) => {
-                            const url = api.apiURL(`/view?filename=${encodeURIComponent(gif.filename)}&type=${gif.type}`);
+                            const params = new URLSearchParams({
+                                filename: gif.filename,
+                                type: gif.type
+                            });
+                            if (gif.subfolder) {
+                                params.set('subfolder', gif.subfolder);
+                            }
+                            const url = api.apiURL(`/view?${params.toString()}`);
                             if (gif.format.startsWith("video/")) {
                                 html += `<video src="${url}" style="width:130px;height:auto;" autoplay loop muted></video>`;
                             } else {
