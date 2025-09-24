@@ -14,7 +14,6 @@ from string import Template
 import itertools
 import functools
 
-from var_dump import var_dump
 
 import folder_paths
 from .logger import logger
@@ -348,7 +347,6 @@ class VideoCombine:
 
                 start_idx = end_idx
 
-            var_dump(all_gifs)
             # 返回合并的结果
             return {
                 "result": ((save_output, all_filenames),),
