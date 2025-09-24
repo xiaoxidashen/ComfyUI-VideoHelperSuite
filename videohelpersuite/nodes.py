@@ -14,6 +14,8 @@ from string import Template
 import itertools
 import functools
 
+from var_dump import var_dump
+
 import folder_paths
 from .logger import logger
 from .image_latent_nodes import *
@@ -248,6 +250,7 @@ class VideoCombine:
                 "format": (["image/gif", "image/webp"] + ffmpeg_formats, {'formats': format_widgets}),
                 "pingpong": ("BOOLEAN", {"default": False}),
                 "save_output": ("BOOLEAN", {"default": True}),
+                "split_num": ("INT", {"default": 1, "min": 1, "max": 100, "step": 1}),
             },
             "optional": {
                 "audio": ("AUDIO",),
@@ -265,7 +268,112 @@ class VideoCombine:
     RETURN_NAMES = ("Filenames",)
     OUTPUT_NODE = True
     CATEGORY = "Video Helper Suite 🎥🅥🅗🅢"
-    FUNCTION = "combine_video"
+    FUNCTION = "combine_video_plus"
+
+    def combine_video_plus(
+        self,
+        frame_rate: int,
+        loop_count: int,
+        images=None,
+        latents=None,
+        filename_prefix="AnimateDiff",
+        format="image/gif",
+        pingpong=False,
+        save_output=True,
+        split_num=1,
+        prompt=None,
+        extra_pnginfo=None,
+        audio=None,
+        unique_id=None,
+        manual_format_widgets=None,
+        meta_batch=None,
+        vae=None,
+        **kwargs
+    ):
+        # 如果 split_num > 1，则分割处理
+        if split_num > 1 and isinstance(images, torch.Tensor):
+            batch_size = images.shape[0]
+            if batch_size < split_num:
+                raise ValueError(f"输入帧数 ({batch_size}) 不能小于分割数 ({split_num})")
+
+            frames_per_split = batch_size // split_num
+            remainder = batch_size % split_num
+
+            all_filenames = []
+            all_gifs = []
+
+            start_idx = 0
+            for i in range(split_num):
+                # 计算当前分割的帧数（处理余数）
+                current_frames = frames_per_split + (1 if i < remainder else 0)
+                end_idx = start_idx + current_frames
+
+                # 分割 tensor
+                split_images = images[start_idx:end_idx]
+
+                # 为每个分割的视频创建唯一的文件名前缀
+                split_filename_prefix = f"{filename_prefix}_part{i+1:02d}"
+
+                # 调用原始的 combine_video 方法处理每个分割
+                result = self.combine_video(
+                    frame_rate=frame_rate,
+                    loop_count=loop_count,
+                    images=split_images,
+                    latents=None,
+                    filename_prefix=split_filename_prefix,
+                    format=format,
+                    pingpong=pingpong,
+                    save_output=save_output,
+                    prompt=prompt,
+                    extra_pnginfo=extra_pnginfo,
+                    audio=audio,
+                    unique_id=unique_id,
+                    manual_format_widgets=manual_format_widgets,
+                    meta_batch=meta_batch,
+                    vae=vae,
+                    **kwargs
+                )
+
+                # 收集结果
+                if result and "result" in result:
+                    result_tuple = result["result"]
+                    if result_tuple and len(result_tuple[0]) >= 2:
+                        filenames = result_tuple[0][1]
+                        all_filenames.extend(filenames)
+
+                    # 收集 UI 中的 gifs 预览信息
+                    if "ui" in result and "gifs" in result["ui"]:
+                        gifs_info = result["ui"]["gifs"]
+                        all_gifs.extend(gifs_info)
+
+                start_idx = end_idx
+
+            var_dump(all_gifs)
+            # 返回合并的结果
+            return {
+                "result": ((save_output, all_filenames),),
+                "ui": {"gifs": all_gifs}
+            }
+        else:
+            # split_num = 1 时，直接调用原始方法
+            return self.combine_video(
+                frame_rate=frame_rate,
+                loop_count=loop_count,
+                images=images,
+                latents=latents,
+                filename_prefix=filename_prefix,
+                format=format,
+                pingpong=pingpong,
+                save_output=save_output,
+                prompt=prompt,
+                extra_pnginfo=extra_pnginfo,
+                audio=audio,
+                unique_id=unique_id,
+                manual_format_widgets=manual_format_widgets,
+                meta_batch=meta_batch,
+                vae=vae,
+                **kwargs
+            )
 
     def combine_video(
         self,

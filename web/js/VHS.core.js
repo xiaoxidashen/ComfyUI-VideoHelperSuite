@@ -2032,6 +2032,20 @@ app.registerExtension({
             chainCallback(nodeType.prototype, "onExecuted", function(message) {
                 if (message?.gifs) {
                     this.updateParameters(message.gifs[0], true);
+                    // 多视频预览
+                    if (message.gifs.length > 1) {
+                        let html = "<div style='display:flex;flex-wrap:wrap;gap:5px;'>";
+                        message.gifs.forEach((gif, index) => {
+                            const url = api.apiURL(`/view?filename=${encodeURIComponent(gif.filename)}&type=${gif.type}`);
+                            if (gif.format === "image/gif") {
+                                html += `<img src="${url}" style="width:130px;height:auto;" autoplay loop muted>`;
+                            } else {
+                                html += `<video src="${url}" style="width:130px;height:auto;" autoplay loop muted></video>`;
+                            }
+                        });
+                        html += "</div>";
+                        this.widgets.find(w => w.name === "videopreview").element.innerHTML = html;
+                    }
                 }
             });
             addVideoPreview(nodeType, false);
