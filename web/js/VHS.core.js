@@ -2037,10 +2037,10 @@ app.registerExtension({
                         let html = "<div style='display:flex;flex-wrap:wrap;gap:5px;'>";
                         message.gifs.forEach((gif, index) => {
                             const url = api.apiURL(`/view?filename=${encodeURIComponent(gif.filename)}&type=${gif.type}`);
-                            if (gif.format === "image/gif") {
-                                html += `<img src="${url}" style="width:130px;height:auto;" autoplay loop muted>`;
-                            } else {
+                            if (gif.format.startsWith("video/")) {
                                 html += `<video src="${url}" style="width:130px;height:auto;" autoplay loop muted></video>`;
+                            } else {
+                                html += `<img src="${url}" style="width:130px;height:auto;">`;
                             }
                         });
                         html += "</div>";
